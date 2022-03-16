@@ -27,8 +27,8 @@ def makeMeStrong_(G):
     minedge = 0
     if len(start) > 1:
         for i in range(len(start)-1):
-            outdeg[end[i]] = 1
-            indeg[end[i + 1]] = 1
+            outdeg[start[i]] = 1
+            indeg[start[i + 1]] = 1
             G.addedge(sc.index(start[i]), sc.index(start[i+1]))
             minedge += 1
     if len(end) > 1:
