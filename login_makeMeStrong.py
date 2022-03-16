@@ -2,7 +2,7 @@
 """
 S4 - March 2022
 Strong Connectivity Homework
-@author: insert your login
+@author: charles.zhang
 """
 
 from algopy import graph
@@ -21,7 +21,7 @@ def makeMeStrong_(G):
         Return the number of added edges
     """
     if scc.is_strong(G, 0):
-        return G, 0
+        return 0
     Gr, sc = scc.condensation(G)
     end, start, indeg, outdeg = __makeMeStrong(Gr)
     minedge = 0
@@ -41,8 +41,7 @@ def makeMeStrong_(G):
     trustart = start[0]
     G.addedge(sc.index(trueend), sc.index(trustart))
     minedge += 1
-    return G, minedge
-
+    return minedge
 
 
 def __makeMeStrong(G):
@@ -68,8 +67,6 @@ def __makeMeStrong(G):
         else:
             totalout += 1
     return end, start, indeg, outdeg
-
-
 
 
 def __settup(G, x, indeg, outdeg, M):
