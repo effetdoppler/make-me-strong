@@ -79,7 +79,7 @@ def __settup(G, x, indeg, outdeg, M):
         if M[adj] == 0:
             __settup(G, adj, indeg, outdeg, M)
 
-def __split(G):
+def __makeMeStrong2(G):
     indeg = [0] * G.order
     outdeg = [0] * G.order
     M = [0] * G.order
@@ -102,14 +102,13 @@ def __split(G):
                 end.append(i)
     return end, start, isolated
 
-def __search_sink_pair(G, x, M, end):
+def __search_raghavan(G, x, M, end):
     if M[x] == 0:
-        if x in end:
-            M[x] = 1
-            return x
         M[x] = 1
+        if x in end:
+            return x
         for y in G.adjlists[x]:
-            w = __search_sink_pair(G, y, M, end)
+            w = __search_raghavan(G, y, M, end)
             if w >= 0:
                 return w
     return -1
@@ -119,108 +118,54 @@ def raghavan(G):
         Return the number of added edges
     """
     Gr, sc = scc.condensation(G)
-    end, start, isolated = __split(Gr)
+    end, start, isolated = __makeMeStrong2(Gr)
     if not end and not start and len(isolated) <= 1:
         return 0
     M = [0] * Gr.order
-    minedge = 0
-    edges = []
-    unmatched_sink = set(end)
-    unmatched_source = set()
+    p = 0
+    vv = []
+    ww = []
+    remaining_sink = set(end)
+    remaining_source = set()
     for v in start:
         if M[v]:
             continue
-        w = __search_sink_pair(Gr, v, M, unmatched_sink)
+        w = __search_raghavan(Gr, v, M, remaining_sink)
         if w >= 0:
-            minedge += 1
-            edges.append((w, v))
-            unmatched_sink.remove(w)
+            p += 1
+            ww.append(w)
+            vv.append(v)
+            remaining_sink.remove(w)
         else:
-            unmatched_source.add(v)
-    if unmatched_sink:
-        for w in unmatched_sink:
-            minedge += 1
-            edges.append((w, edges[0][1]))
-    if unmatched_source:
-        for v in unmatched_source:
-            minedge += 1
-            edges.append((edges[0][0], v))
-    if isolated:
-        if edges:
-            edges.append((edges[0][0], isolated[0]))
-            edges.append((isolated[-1], edges[0][1]))
-            minedge += 2
-        elif len(isolated) > 1:
-            edges.append((isolated[-1], isolated[0]))
-            minedge += 1
+            remaining_source.add(v)
+    edges = []
+    if not ww:
         for i in range(len(isolated)-1):
             edges.append((isolated[i], isolated[i+1]))
-            minedge += 1
+        if len(isolated) > 1:
+            edges.append((isolated[-1], isolated[0]))
+    else:
+        for i in range(p-1):
+            edges.append((ww[i], vv[i+1]))
+        while remaining_sink and remaining_source:
+            v = remaining_source.pop()
+            w = remaining_sink.pop()
+            edges.append((w, v))
+        w = ww[-1]
+        v = vv[0]
+        while remaining_sink:
+            wold = w
+            w = remaining_sink.pop()
+            edges.append((wold, w))
+        while remaining_source:
+            wold = w
+            w = remaining_source.pop()
+            edges.append((wold, w))
+        for q in isolated:
+            edges.append((w, q))
+            w = q
+        edges.append((w, v))
+
     for edge in edges:
-        G.adjlists[sc.index(edge[0])].append(sc.index(edge[1]))
-    return minedge
-
-
-
-#def __determine_reach(G, v, reach, unvisited):
-#    path = [v]
-#    while v in unvisited:
-#        unvisited.remove(v)
-#        if not G.adjlists[v]:
-#            break;
-#        v = G.adjlists[v][0]
-#        path.append(v)
-#    for i in path:
-#        reach[i] = v
-#
-#def contest(G):
-#    n = G.order
-#    # Determine in-degree of all the nodes
-#    indegree = [0 for i in range(n)]
-#    for i in range(n):
-#        for adj in G.adjlists[i]:
-#            indegree[adj] += 1
-#
-#    # Nodes with indegree = 0 will need to be an end-point of a new edge
-#    endpoints = [i for i in range(n) if (indegree[i] == 0)]
-#    nr_indegree_zero = len(endpoints)
-#
-#    # Determine which (hereto unvisited) nodes will be reached by these endpoints
-#    unvisited = set(range(n))
-#    reach = [None for i in range(n)]
-#
-#    for v in endpoints:
-#        __determine_reach(G, v, reach, unvisited)
-#
-#    # The reached nodes form good start-points for the new edges
-#    startpoints = [reach[v] for v in endpoints]
-#
-#    # Check for isolated cycles that are not connected to the rest of the graph
-#    nr_cycles = 0
-#    while len(unvisited) > 0:
-#        # Select a node from the unvisited set (without removing it)
-#        v = unvisited.pop()
-#        unvisited.add(v)
-#
-#        nr_cycles += 1
-#        __determine_reach(G, v, reach, unvisited)
-#        endpoints.append(v)
-#        startpoints.append(reach[v])
-#
-#    # Special case: no indegree 0 nodes and only 1 cycle
-#    if (nr_indegree_zero == 0) and (nr_cycles == 1):
-#        # No edges need to be added
-#        return 0
-#
-#    # Rotate the lists to each start point connects to the end-point of the next item
-#    endpoints = endpoints[1:] + endpoints[:1]
-#    nb = len(endpoints)
-#    for i in range(nb):
-#        G.adjlists[startpoints[i]].append(endpoints[i])
-#    return nb
-#
-
-
-
-
-
+        G.addedge(sc.index(edge[0]), sc.index(edge[1]))
+    return len(edges)
