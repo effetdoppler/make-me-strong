@@ -56,6 +56,14 @@ def __testcolors(G, colors):
                 return False
     return True
 
+def __nb_edge_digraph(G):
+    if not G.directed:
+        return -1
+    n = 0
+    for x in range(G.order):
+        n += len(G.adjlists[x])
+    return n
+
 def run_verif_strong(f, dirpath):
     """test the coloration function f on a list of graphs:
         - verify each coloration is correct
@@ -83,9 +91,13 @@ def run_verif_strong(f, dirpath):
                     G.adjlists.append(li)
             G.order = N * G.order
 
+        edges_before = __nb_edge_digraph(G)
         nb = f(G)
-        if not is_strong(G, 0):
-            results.append((None, "wrong coloration"))
+        edges_after = __nb_edge_digraph(G)
+        if nb != edges_after - edges_before:
+            results.append((None, "inconsistent edges"))
+        elif not is_strong(G, 0):
+            results.append((None, "not strongly connected"))
         else:
             results.append(nb)
     print("...............time spent: " + str(round(time.time()-start, 3)) + " s")
